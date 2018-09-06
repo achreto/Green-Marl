@@ -109,7 +109,7 @@ class gm_bfs_template
                         #pragma omp parallel
                         {
                             int tid = omp_get_thread_num();
-                            #pragma omp for nowait schedule(dynamic,128)
+                            #pragma omp for nowait //schedule(dynamic,128)
                             for (node_t i = 0; i < curr_count; i++) {
                                 //node_t t = global_curr_level[i];
                                 node_t t = global_vector[global_curr_level_begin + i];
@@ -136,7 +136,7 @@ class gm_bfs_template
                         #pragma omp parallel
                         {
                             node_t local_cnt = 0;
-                            #pragma omp for nowait schedule(dynamic,128)
+                            #pragma omp for nowait //schedule(dynamic,128)
                             for (node_t i = 0; i < curr_count; i++) {
                                 //node_t t = global_curr_level[i];
                                 node_t t = global_vector[global_curr_level_begin + i];
@@ -163,7 +163,7 @@ class gm_bfs_template
                         #pragma omp parallel
                         {
                             node_t local_cnt = 0;
-                            #pragma omp for nowait schedule(dynamic,128)
+                            #pragma omp for nowait //schedule(dynamic,128)
                             for (node_t t = 0; t < G.num_nodes(); t++) {
                                 if (visited_level[t] == curr_level) {
                                     iterate_neighbor_rd(t, local_cnt);
@@ -189,7 +189,7 @@ class gm_bfs_template
                         #pragma omp parallel
                         {
                             int tid = omp_get_thread_num();
-                            #pragma omp for nowait schedule(dynamic,128)
+                            #pragma omp for nowait //schedule(dynamic,128)
                             for (node_t t = 0; t < G.num_nodes(); t++) {
                                 if (visited_level[t] == curr_level) {
                                     iterate_neighbor_que(t, tid);
@@ -216,7 +216,7 @@ class gm_bfs_template
                     #pragma omp parallel if (use_multithread)
                     {
                         node_t local_cnt = 0;
-                        #pragma omp for nowait schedule(dynamic,128)
+                        #pragma omp for nowait //schedule(dynamic,128)
                         for (node_t t = 0; t < G.num_nodes(); t++) {
                             if (visited_level[t] == curr_level) {
                                 visit_fw(t);
@@ -233,14 +233,14 @@ class gm_bfs_template
                     }
                     break;
                 }
-                             
+
                 // reverse read2Q
                 case ST_RR2Q: {
                     #pragma omp parallel if (use_multithread)
                     {
 
                         int tid = omp_get_thread_num();
-                        #pragma omp for nowait schedule(dynamic,128)
+                        #pragma omp for nowait //schedule(dynamic,128)
                         for (node_t t = 0; t < G.num_nodes(); t++) {
                             if (visited_level[t] == curr_level) {
                                 visit_fw(t);
@@ -279,16 +279,16 @@ class gm_bfs_template
             //node_t* queue_ptr = level_start_ptr[level];
             node_t* queue_ptr;
             node_t begin_idx = level_queue_begin[level];
-            if (begin_idx == -1) { 
+            if (begin_idx == -1) {
                 queue_ptr = NULL;
             } else {
                 queue_ptr = & (global_vector[begin_idx]);
             }
-           
+
             if (queue_ptr == NULL) {
 #pragma omp parallel if (use_multithread)
                 {
-#pragma omp for nowait schedule(dynamic,128)
+#pragma omp for nowait //schedule(dynamic,128)
                     for (node_t i = 0; i < G.num_nodes(); i++) {
                         if (visited_level[i] != curr_level) continue;
                         visit_rv(i);

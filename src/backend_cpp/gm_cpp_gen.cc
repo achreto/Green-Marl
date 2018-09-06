@@ -1143,16 +1143,15 @@ void gm_cpp_gen::generate_expr_builtin(ast_expr* ee) {
 }
 
 void gm_cpp_gen::prepare_parallel_for(bool need_dynamic) {
-    if (is_under_parallel_sentblock()) 
+    if (is_under_parallel_sentblock())
         Body.push("#pragma omp for nowait"); // already under parallel region.
     else
         Body.push("#pragma omp parallel for");
 
     if (need_dynamic) {
-        Body.push(" schedule(dynamic,128)");
+        //Body.push(" schedule(dynamic,128)");
 
     }
 
     Body.NL();
 }
-
