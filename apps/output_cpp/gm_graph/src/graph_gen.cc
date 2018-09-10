@@ -9,10 +9,26 @@
 #include "graph_gen.h"
 #include "gm_rand.h"
 
+
+static inline unsigned long mylrand(unsigned long *seed)
+{
+  long x = *seed;
+  x += 0xcafebabe;
+  x ^= x << 13;
+	x ^= x >> 17;
+	x ^= x << 5;
+
+  *seed = x;
+
+	return x & 0x00ffffffffffffffUL;
+}
+
 gm_graph* create_uniform_random_graph(node_t N, edge_t M, long seed, bool use_xorshift_rng) {
-    
+
+
     gm_rand xorshift_rng(seed);
     if (!use_xorshift_rng) {
+        printf("create_uniform_random_graph with myrand \n");
         srand(seed);
     }
 
@@ -24,28 +40,39 @@ gm_graph* create_uniform_random_graph(node_t N, edge_t M, long seed, bool use_xo
     edge_t* degree = new edge_t[N];
     memset(degree, 0, sizeof(edge_t) * N);
 
+    #pragma omp parallel
+    {
+      unsigned long myseed = (unsigned long)seed + omp_get_thread_num();
+    #pragma omp for
     for (edge_t i = 0; i < M; i++) {
-        node_t r;
-        if (use_xorshift_rng) r = (edge_t)xorshift_rng.rand();
-        else r = rand(); //TODO 64-bit ?
-        src[i] = r % N;  
-        if (use_xorshift_rng) r = (edge_t)xorshift_rng.rand();
-        else r = rand(); //TODO 64-bit ?
-        dest[i] = r % N; 
+        unsigned long srcidx, dstidx;
+        if (use_xorshift_rng) {
+            srcidx = (edge_t)xorshift_rng.rand();
+            dstidx = (edge_t)xorshift_rng.rand();
+        } else {
+            srcidx = mylrand(&myseed);
+            dstidx = mylrand(&myseed);
+        }
+        src[i] = srcidx % N;
+        dest[i] = dstidx % N;
 
-        degree[src[i]]++;
+        //printf("%lu / %lu\n", src[i], N);
+        _gm_atomic_fetch_and_add_node(&degree[src[i]], 1);
     }
+  }
 
     g->begin[0] = 0;
     for (node_t i = 1; i <= N; i++) {
         g->begin[i] = g->begin[i - 1] + degree[i - 1];
     }
 
+    #pragma omp parallel for
     for (edge_t i = 0; i < M; i++) {
         node_t u = src[i];
         node_t v = dest[i];
 
-        edge_t pos = degree[u]--;
+        edge_t pos = _gm_atomic_fetch_and_add_node(&degree[src[i]], -1);
+        //edge_t pos = degree[u]--;
         assert(pos > 0);
         g->node_idx[g->begin[u] + pos - 1] = v;  // set end node of this edge
     }
@@ -106,7 +133,7 @@ gm_graph* create_uniform_random_nonmulti_graph(node_t N, edge_t M, long seed) {
     return G;
 }
 
-/** 
+/**
  Create RMAT graph
  a, b, c : params
  */
