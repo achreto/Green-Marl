@@ -1,5 +1,11 @@
 #include "gm_runtime.h"
 
+#ifndef _OPENMP
+#define omp_get_max_threads() 1
+#define omp_set_num_threads(x)
+#define omp_get_thread_num() 0
+#endif
+
 //===============================
 gm_mem_helper _GM_MEM;
 ;
@@ -72,7 +78,7 @@ void gm_runtime::expand_random_seeds(int old, int n) {
 
     // new random seeds
     // short[0]   : 0x330E  (arbitary number)
-    // short[1~2] : thread id 
+    // short[1~2] : thread id
     for (int i = old; i < n; i++) {
         int base = i * 3;
         random_seeds[base + 0] = (unsigned short) 0x330E;

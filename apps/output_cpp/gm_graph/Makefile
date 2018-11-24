@@ -5,8 +5,8 @@ BIN = ../bin
 INC = inc
 SRC = src
 OBJ = obj
-CFLAGS = -O3 -g -I$(INC) -fopenmp -Wall 
-OUT = $(BIN)/graph_gen $(LIB)/libgmgraph.a $(BIN)/gm_format_converter
+CFLAGS = -O3 -g -I$(INC) -Wall
+OUT = $(BIN)/graph_gen $(LIB)/libgmgraph.a $(LIB)/libgmgraphs.a $(BIN)/gm_format_converter
 JC = javac
 JSRC = javasrc
 JBIN = javabin
@@ -17,7 +17,9 @@ vpath %.h $(INC)
 vpath %.java $(JSRC)
 
 SOURCES := $(wildcard $(SRC)/*.cc)
-OBJECTS := $(subst $(SRC),$(OBJ),$(SOURCES:.cc=.o)) 
+OBJECTS := $(subst $(SRC),$(OBJ),$(SOURCES:.cc=.o))
+SOURCES_NO_OMP := $(wildcard $(SRC)/*.cc)
+OBJECTS_NO_OMP := $(subst $(SRC),$(OBJ),$(SOURCES_NO_OMP:.cc=.on))
 GRAPHGEN_OBJECTS = $(OBJ)/gm_graph.o $(OBJ)/gm_rand.o $(OBJ)/graph_gen.o $(OBJ)/graph_gen_main.o $(OBJ)/gm_util.o $(OBJ)/gm_lock.o $(OBJ)/gm_file_handling.o $(OBJ)/gm_file_c.o $(OBJ)/gm_read_setup.o $(OBJ)/gm_graph_binary_loader.o
 JAVASOURCES := $(wildcard $(JSRC)/*.java)
 JAVACLASSES := $(subst $(JSRC),$(JBIN),$(JAVASOURCES:.java=.class))
@@ -25,10 +27,10 @@ JAVACLASSES := $(subst $(JSRC),$(JBIN),$(JAVASOURCES:.java=.class))
 AVRO = ./avro-c-1.7.2/src
 JANSSON = $(AVRO)/../jansson/src
 AVRO_SOURCES := $(wildcard $(AVRO)/*.c)
-JANSSON_SOURCES := $(wildcard $(JANSSON)/*.c) 
-AVRO_OBJECTS := $(subst ,,$(AVRO_SOURCES:.c=_avro.o)) 
+JANSSON_SOURCES := $(wildcard $(JANSSON)/*.c)
+AVRO_OBJECTS := $(subst ,,$(AVRO_SOURCES:.c=_avro.o))
 AVRO_OBJECTS := $(filter-out $(AVRO)/avroappend_avro.o $(AVRO)/avropipe_avro.o $(AVRO)/avrocat_avro.o $(AVRO)/avromod_avro.o $(AVRO)/datum_equal_avro.o $(AVRO)/datum_size_avro.o  $(AVRO)/schema_specific_avro.o,$(AVRO_OBJECTS))
-JANSSON_OBJECTS := $(subst ,,$(JANSSON_SOURCES:.c=_json.o)) 
+JANSSON_OBJECTS := $(subst ,,$(JANSSON_SOURCES:.c=_json.o))
 
 # include common define flags for gm_graph and application
 # (32/64bit environment), (bitwidth of node/edge structure), (hdfs setting)
@@ -39,7 +41,9 @@ include ../common.mk
 ifeq ($(SUPPORT_AVRO),1)
 # enable Avro
 GRAPHLIB_OBJECTS = $(filter-out $(OBJ)/graph_gen_main.o,$(OBJECTS))
+GRAPHLIB_OBJECTS_NO_OMP = $(filter-out $(OBJ)/graph_gen_main.o,$(OBJECTS_NO_OMP))
 GRAPHLIB_OBJECTS += $(AVRO_OBJECTS) $(JANSSON_OBJECTS)
+GRAPHLIB_OBJECTS_NO_OMP += $(AVRO_OBJECTS) $(JANSSON_OBJECTS)
 AVRO_PATH=./avro-c-1.7.2
 AVRO = $(AVRO_PATH)/src
 JANSSON = $(AVRO_PATH)/jansson/src
@@ -48,6 +52,7 @@ CFLAGS += -I$(AVRO)
 BUILD_DIRS=$(JBIN)
 else
 GRAPHLIB_OBJECTS = $(filter-out $(OBJ)/gm_graph_avro_loader.o $(OBJ)/graph_gen_main.o,$(OBJECTS))
+GRAPHLIB_OBJECTS_NO_OMP = $(filter-out $(OBJ)/gm_graph_avro_loader.on $(OBJ)/graph_gen_main.on,$(OBJECTS_NO_OMP))
 endif
 
 ifeq ($(SUPPORT_HDFS),1)
@@ -56,30 +61,35 @@ else
 all: $(BUILD_DIRS) $(OUT)
 endif
 
-$(BIN)/graph_gen: $(GRAPHGEN_OBJECTS) 
-	$(CC) $(CFLAGS) $^ $(LFLAGS) -o $@
+$(BIN)/graph_gen: $(GRAPHGEN_OBJECTS)
+	$(CC) $(CFLAGS) -fopenmp $^ $(LFLAGS) -o $@
 
 $(BIN)/gm_format_converter: $(OBJ)/gm_format_converter.o $(LIB)/libgmgraph.a
-	$(CC) $(CFLAGS) $(OBJ)/gm_format_converter.o  $(LFLAGS) -L$(LIB) -lgmgraph -o $@ 
+	$(CC) $(CFLAGS) -fopenmp $(OBJ)/gm_format_converter.o  $(LFLAGS) -L$(LIB) -lgmgraph -o $@
 
 $(LIB)/libgmgraph.a: $(GRAPHLIB_OBJECTS)
-	$(AR) r $@  $^  
+	$(AR) r $@  $^
 
-$(BUILD_DIRS): 
+$(LIB)/libgmgraphs.a: $(GRAPHLIB_OBJECTS_NO_OMP)
+	$(AR) r $@  $^
+
+$(BUILD_DIRS):
 	mkdir $(JBIN)
 
 ifeq ($(SUPPORT_HDFS),1)
 $(JBIN)/%.class: %.java
 	$(JC) $(JFLAGS) -d $(JBIN) $<
 $(OBJ)/%.o: %.cc $(JAVACLASSES)	../../../setup.mk
-	$(CC) $(CFLAGS) -c $< -o $@ 
+	$(CC) $(CFLAGS) -c $< -o $@
 else
 $(OBJ)/%.o: %.cc ../../../setup.mk
+	$(CC) $(CFLAGS) -fopenmp -c $< -o $@
+$(OBJ)/%.on: %.cc ../../../setup.mk
 	$(CC) $(CFLAGS) -c $< -o $@
 endif
 
 clean:
-	rm -f $(OBJ)/*.o $(OUT) $(JAVACLASSES)
+	rm -f $(OBJ)/*.o $(OBJ)/*.no $(OUT) $(JAVACLASSES)
 
 .PHONY: echocflags echolflags echoflags
 echocflags:
