@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct timeval ___t_start;
+
+
 /*
  * This is an implementation of the Tokenizer class.
  * This implementation uses the methods in the C++ string class;
