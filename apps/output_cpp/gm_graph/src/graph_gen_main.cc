@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
         printf("\t 1: uniform random alternative (multigraph)\n");
         printf("\t 2: uniform random \n");
         printf("\t 3: uniform random (multigraph - xorshift random)\n");
-        //        printf("\t 3: RMAT random (mu\n");
+        printf("\t 4: RMAT random (mu\n");
         exit(0);
     }
 
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 
 
     gm_graph* g;
-    int random_seed = 1997;
+    int random_seed = 19971997;
 
     struct timeval T1, T2;
     gettimeofday(&T1, NULL);
@@ -50,11 +50,9 @@ int main(int argc, char** argv) {
         case 3:
             g = create_uniform_random_graph(N, M, random_seed, true);
             break;
-        /*
         case 4:
-             g = create_RMAT_graph(N, M, random_seed, need_back_edge);
+             g = create_RMAT_graph(N, M, random_seed, 0.57, 0.19, 0.19, true);
              break;
-        */
         default:
             printf("UNKNOWN GRAPH TYPE\n");
             exit(-1);
