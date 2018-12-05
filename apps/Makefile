@@ -45,12 +45,12 @@ ifndef PROGS
 include ./Programs.mk
 endif
 
-all: lib gen bin
+all: lib
 
 lib:
 	@cd $(tdir); make lib
 
-bin: lib gen
+bin: lib
 	@cd $(tdir); make 
 
 gen:

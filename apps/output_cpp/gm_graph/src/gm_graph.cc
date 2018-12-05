@@ -216,9 +216,14 @@ void gm_graph::make_reverse_edges() {
     //-------------------------------------------
     // step 1 count in-degree
     //-------------------------------------------
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (node_t i = 0; i < n_nodes; i++) {
         r_begin[i] = 0;
+    }
+
+    for (edge_t i = 0; i < num_edges(); i++) {
+        r_node_idx[i] = 0;
+        e_rev2idx[i]  = 0;
     }
 
 #pragma omp parallel for //schedule(dynamic,128)
@@ -247,6 +252,7 @@ void gm_graph::make_reverse_edges() {
 
 
 #if GM_GRAPH_NUMA_OPT
+    #error "FOOBAR"
     node_t* temp_r_node_idx = new node_t[_numEdges];
 #endif
 
@@ -449,10 +455,12 @@ void gm_graph::do_semi_sort() {
 
     // create map to original index
     e_idx2idx = new edge_t[num_edges()];
-    #pragma omp parallel for //schedule(dynamic,128
+    memset(e_idx2idx, 0, sizeof(edge_t) * num_edges());
+
+    #pragma omp parallel for
     for (node_t i = 0; i < num_nodes(); i++) {
         for (edge_t j = begin[i]; j < begin[i + 1]; j++) {
-            e_idx2idx[j] = j;           /// first touch (NUMA OPT)
+            e_idx2idx[j] = j;          
         }
     }
 
@@ -502,8 +510,9 @@ void gm_graph::delete_frozen_graph() {
 
 void gm_graph::allocate_memory_for_frozen_graph(node_t n, edge_t m) {
     begin = new edge_t[n + 1];
+    memset(begin, 0, sizeof(edge_t) * n + 1);
     node_idx = new node_t[m];
-
+    memset(node_idx, 0, sizeof(node_t) * m);
     _numNodes = n;
     _numEdges = m;
 }

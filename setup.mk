@@ -74,7 +74,7 @@ HADOOP_CORE_DIR=${HADOOP_HOME}
 #HADOOP_CORE_DIR=${GM_TOP}/apps/output_giraph/lib
 
 # Support reading/writing adjacency list in Avro format
-SUPPORT_AVRO=1
+SUPPORT_AVRO=0
 
 #--------------------------------------------------------
 # 4. Building Giraph bakcend 
